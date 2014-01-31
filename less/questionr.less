@@ -1,0 +1,143 @@
+@import "lesshat";
+@import "variables";
+
+.questionr {
+    display: none;
+    font-family: Helvetica,Arial,sans-serif;
+    font-size: 1em;
+    color: @font;
+    background: @blue;
+    .background-image(linear-gradient(to bottom, @blue 0%, @dark-blue 100%));
+    position: relative;
+    .close-action {
+        width: 10px;
+        height: 10px;
+        position: absolute;
+        display: inline-block;
+        text-indent: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        background: url(../img/close.png);
+        top: 10px;
+        right: 10px;
+        z-index: 100;
+    }
+    .questionr-container {
+        position: relative;
+        padding: 20px 25px;
+        .form {
+            .title {
+                font-size: 130%;
+                display: block;
+            }
+            .description {
+                padding-top: 3px;
+                font-size: 90%;
+                display: block;
+            }
+            .fieldgroup {
+                padding-top: 15px;
+                p {
+                    margin: 5px 0 7px 0;
+                    font-size: 90%;
+                }
+                ul {
+                    margin: 0;
+                    padding: 0;
+                    list-style: none;
+                    li {
+                        margin-top: 5px;
+                        label {
+                            font-size: 80%;
+                            vertical-align: baseline;
+                        }
+                    }
+                }
+                fieldset {
+                    margin: 0;
+                    padding: 0;
+                    border: 0;
+                }
+                input[type=radio], input[type=checkbox] {
+                    margin: 0;
+                }
+                input[type=text] {
+                    color: #555;
+                    border: 0;
+                    outline: 0;
+                    font-size: .8em;
+                    padding: 10px;
+                    width: 100%;
+                    .box-sizing(border-box);
+                }
+                select {
+                    width: 200px;
+                    border: 0;
+                    height: 35px;
+                }
+                .info {
+                    vertical-align: top;
+                    position: relative;
+                    .icon-info {
+                        cursor: pointer;
+                        background: @font;
+                        display: inline-block;
+                        position: absolute;
+                        height: 14px;
+                        width: 14px;
+                        bottom: 1px;
+                        color: @blue;
+                        left: 0;
+                        margin-left: 6px;
+                        .border-radius(50%);
+                        > span {
+                            font-size: 10px;
+                            padding-left: 4px;
+                            padding-top: 1px;
+                            position: absolute;
+                        }
+                    }
+                }
+            }
+            .actions-wrapper {
+                padding-top: 20px;
+                button {
+                    font-family: Helvetica,Arial,sans-serif;
+                    font-weight: bold;
+                    font-size: 80%;
+                    text-shadow: 0 1px 1px rgba(255,255,255,0.75);
+                    display:inline-block;
+                    zoom:1;
+                    line-height:normal;
+                    white-space:nowrap;
+                    vertical-align:baseline;
+                    text-align:center;
+                    cursor:pointer;
+                    .border-radius(5px);
+                    padding: 6px 8px;
+                    border-width: 1px;
+                    border-style: solid;
+                    &.action {
+                        padding: 6px 13px;
+                        color: darken(@gray, 70%);
+                        background: @yellow;
+                        .background-image(linear-gradient(to bottom, @yellow 0%, @dark-yellow 100%));
+                        border-color: @dark-yellow;
+                        &:hover {
+                            .background-image(linear-gradient(to bottom, darken(@yellow, 7%) 0%, darken(@dark-yellow, 7%) 100%));
+                        }
+                    }
+                    &.skip {
+                        color: darken(@gray, 55%);
+                        background: @gray;
+                        .background-image(linear-gradient(to bottom, @gray 0%, @dark-gray 100%));
+                        border-color: @dark-gray;
+                        &:hover {
+                            .background-image(linear-gradient(to bottom, darken(@gray, 7%) 0%, darken(@dark-gray, 7%) 100%));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -6,9 +6,11 @@ var pkg = require('./package.json');
 
 // plugins
 var concat = require('gulp-concat');
-var less = require('gulp-less');
 var uglify = require('gulp-uglify');
 var jshint = require('gulp-jshint');
+var less = require('gulp-less');
+var minify = require('gulp-minify-css');
+var watch = require('gulp-watch');
 var map = require('map-stream');
 
 // reporter (jshint)
@@ -32,7 +34,7 @@ var reporter = map(function(file, cb) {
 
 // tasks
 gulp.task('build', function() {
-    // minify and jshint
+    // js
     var scriptFile = './js/questionr.js';
     var scriptDist = './js';
 
@@ -44,13 +46,16 @@ gulp.task('build', function() {
 
 
     // less
-    var lessFiles = './less/**/*';
+    var lessFile = './less/questionr.less';
     var lessDist = './css';
 
-    gulp.src(lessFiles)
-        .pipe(concat('all.min.less'))
-        .pipe(less())
-        .pipe(gulp.dest(lessDist));
+    gulp.src(lessFile)
+        .pipe(watch(function(files) {
+            return files.pipe(concat('all.min.less'))
+                        .pipe(less())
+                        .pipe(minify())
+                        .pipe(gulp.dest(lessDist));
+        }));
 });
 
 // default task (called when run `gulp`)

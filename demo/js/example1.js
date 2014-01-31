@@ -6,8 +6,8 @@
  */
 
 var feedback = {
-    id: 'feedback',
-    target: '#feedback',
+    id: 'example1',
+    target: '#example1',
     steps: [
         // 0
         {
@@ -102,6 +102,11 @@ var feedback = {
     },
     onEnd: function() {
         console.log('Ending questionr...');
+    },
+    i18n: {
+        skipBtn: 'Pular',
+        doneBtn: 'Salvar',
+        closeTooltip: 'Sair'
     }
 };
 

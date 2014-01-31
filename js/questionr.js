@@ -1,3 +1,5 @@
+var test;
+
 (function(context, namespace) {
 
     var Questionr,
@@ -6,8 +8,9 @@
         defaultOpts,
         callbacks,
         utils,
-        winQuestionr = context[namespace],
-        document = window.document;
+        winQuestionr = context[namespace];
+
+    if (typeof window.jQuery === undefined) throw 'jQuery was not found';
 
     defaultOpts = {
         showClose: true
@@ -18,7 +21,9 @@
 
     callbacks = {
         start: [],
-        end: []
+        changeStep: [],
+        end: [],
+        close: []
     };
 
     QuestionrI18N = {
@@ -30,27 +35,18 @@
     customI18N = {};
 
     utils = {
-        extend: function(obj1, obj2) {
-            var prop;
-            for (prop in obj2) {
-                if (obj2.hasOwnProperty(prop)) {
-                    obj1[prop] = obj2[prop];
-                }
-            }
-        },
         getI18NString: function(key) {
             return customI18N[key] || QuestionrI18N[key];
         },
-        addEvtListener: function(el, evtName, fn) {
-            return el.addEventListener ? el.addEventListener(evtName, fn, false) : el.attachEvent('on' + evtName, fn);
-        },
-        removeEvtListener: function(el, evtName, fn) {
-            return el.removeEventListener ? el.removeEventListener(evtName, fn, false) : el.detachEvent('on' + evtName, fn);
+        invokeCallbackArray: function(arr) {
+            if ($.isArray(arr))
+                for (i = 0, len = arr.length; i < len; ++i)
+                    utils.invokeCallback(arr[i]);
         },
         invokeCallback: function(cb) {
             if (typeof cb === 'function')
                 return cb();
-            if (typeof cb !== 'string') // assuming array
+            else if (typeof cb === 'object') // assuming array
                 return utils.invokeCallbackArray(cb);
         },
         invokeEventCallbacks: function(evtType, stepCb) {
@@ -63,13 +59,204 @@
 
             for (i = 0, len = cbArr.length; i < len; ++i)
                 this.invokeCallback(cbArr[i].cb);
+        },
+        valOrDefault: function(val, valDefault) {
+          return typeof val !== undefined ? val : valDefault;
         }
     };
 
-    Questionr = function(initOptions) {
+    QuestionrBoard = function(opt) {
+        var el;
+
+        this.init(opt);
+    };
+
+    QuestionrBoard.prototype = {
+        _inputOptions: function(type, obj) {
+            if (!(/radio|checkbox/).test(type)) return;
+            var i,
+                len,
+                list = $('<ul></ul>');
+
+            for (i = 0, len = obj.options.length; i < len; i++) {
+                var option = obj.options[i];
+                var item = $('<li><label><input name="' + obj.name + '" type="' + type + '" value="' + option.value + '"> ' + (option.title || option.value) + '</label></li>');
+                if (typeof option.hint === 'string')
+                    item.append(this._hint(option.hint));
+                list.append(item);
+            }
+            return list;
+        },
+        _textarea: function(obj) {
+            var required = (obj.required !== undefined) ? 'required' : '';
+            var item = $('<fieldset><textarea name="' + obj.name + '" ' + required + '></textarea></fieldset>');
+            if (typeof obj.hint === 'string')
+                item.append(this._hint(obj.hint));
+            return item;
+        },
+        _text: function(obj) {
+            var required = (obj.required !== undefined) ? 'required' : '';
+            var item = $('<fieldset><input name="' + obj.name + '" type="text" ' + required + '></fieldset>');
+            if (typeof obj.hint === 'string')
+                item.append(this._hint(obj.hint));
+            return item;
+        },
+        _checkbox: function(obj) {
+            return this._inputOptions('checkbox', obj);
+        },
+        _radio: function(obj) {
+            return this._inputOptions('radio', obj);
+        },
+        _select: function(obj) {
+            var required = (obj.required !== undefined) ? 'required' : '',
+                i,
+                len,
+                select = $('<select name="' + obj.name + '" ' + required + '></select>'),
+                fieldset = $('<fieldset></fieldset>');
+
+            for (i = 0, len = obj.options.length; i < len; i++) {
+                var option = obj.options[i];
+                var item = $('<option value="' + option.value + '">' + (option.title || option.value) + '</option>');
+                select.append(item);
+            }
+            fieldset.append(select);
+            if (typeof obj.hint === 'string')
+                fieldset.append(this._hint(obj.hint));
+            return fieldset;
+        },
+        _hint: function(text) {
+            return $('<span class="info" title="' + text + '"><span class="icon-info"><span>?</span></span></span>');
+        },
+        _component: function(options) {
+            var input,
+            groupEl = $('<div class="fieldgroup"></div>');
+
+            if (options.title !== undefined)
+                groupEl.append('<p>' + options.title + '</p>');
+
+            var inputTypes = {
+                textarea: '_textarea',
+                text: '_text',
+                checkbox: '_checkbox',
+                radio: '_radio',
+                select: '_select'
+            };
+            var dispatcher = (typeof this[inputTypes[options.type]] === 'function') ? this[inputTypes[options.type]] : null;
+
+            if (dispatcher) {
+                input = dispatcher.call(this, options);
+                groupEl.append(input);
+            } else throw 'Input type "' + options.type + '" was not found';
+
+            return groupEl;
+        },
+        _renderComponents: function(arr) {
+            // assuming one component (no-array)
+            if (typeof arr === 'object' && !$.isArray(arr))
+                return this._component(arr);
+
+            var i,
+                len,
+                compsEl;
+
+            for (i = 0, len = arr.length; i < len; i++) {
+                if (!compsEl)
+                    compsEl = this._component(arr[i]);
+                else
+                    compsEl.append(this._component(arr[i]));
+            }
+            return compsEl;
+        },
+        _closeBtn: function() {
+            var self = this;
+            var btn = $('<a href="#" class="close-action" title="' + utils.getI18NString('closeTooltip') + '">' + utils.getI18NString('closeTooltip') + '</a>');
+            btn.on('click', function(e) {
+                e.preventDefault();
+                self.hide(true);
+            });
+            return btn;
+        },
+        init: function(initOpt) {
+            $target = (typeof initOpt.target === 'object') ? initOpt.target : $(initOpt.target);
+
+            if (!$target.length) throw 'Target element was not found';
+
+            el = $('<div class="questionr board"><div class="questionr-container"></div></div>');
+
+            // showClose
+            if (getOption('showClose') === true)
+                el.prepend(this._closeBtn());
+
+            $target.append(el);
+        },
+        render: function(step, idx) {
+            $container = el.find('> .questionr-container').first();
+
+            var stepEl = $('<div class="questionr-step" data-step-id="' + idx + '"></div>');
+            var formEl = $('<div class="form"></div>');
+            var actsEl = $('<div class="actions-wrapper"></div>');
+
+            // title & description
+            if (step.title !== undefined)
+                formEl.append($('<span class="title">' + step.title + '</span>'));
+            if (step.description !== undefined)
+                formEl.append($('<span class="description">' + step.description + '</span>'));
+
+            // components
+            var compsEl = this._renderComponents(step.form);
+            formEl.append(compsEl);
+
+            // actions wrapper
+            var actBtnEl = $('<button type="button" class="action">' + utils.getI18NString('doneBtn') + '</button>');
+            actsEl.append(actBtnEl);
+            if (step.showSkip === true)
+                actsEl.append($('<button type="button" class="skip">' + utils.getI18NString('skipBtn') + '</button>'));
+            formEl.append(actsEl);
+
+            stepEl.append(formEl);
+
+            $container.html(stepEl);
+        },
+        show: function() {
+            el.fadeIn(200);
+        },
+        hide: function(destroy) {
+            var self = this;
+            el.fadeOut(200, function() {
+                if (destroy) self.destroy();
+            });
+        },
+        destroy: function() {
+            el.remove();
+        }
+    };
+
+    Questionr = function() {
         var currQuestionnaire,
+            board,
             opt,
             _configure;
+
+        /**
+         * Function for retrieving or creating board object
+         * @return {Object} QuestionrBoard
+         */
+        getBoard = function() {
+            if (!board) board = new QuestionrBoard(opt);
+            return board;
+        };
+
+        /**
+         * Method for getting an option. Returns custom config option
+         * or default config option if no custom value exists.
+         * @param  {String} name config option name
+         * @return {Object}      config option value
+         */
+        getOption = function(name) {
+            if (typeof opt === undefined)
+                return defaultOpts[name];
+            return utils.valOrDefault(opt[name], defaultOpts[name]);
+        };
 
         /**
          * Loads, but does nt display, questionnaire
@@ -99,15 +286,29 @@
          * @return {Object}               Questionr
          */
         this.start = function(questionnaire, cb) {
+            var board,
+                firstStep;
+
             // loadQuestionnaire if we are calling `start` directly.
             if (!currQuestionnaire) {
                 currQuestionnaire = questionnaire;
                 loadQuestionnaire.call(this, questionnaire);
             }
 
+            // adds onEnd callback (shortcut)
             if (typeof cb === 'function') this.listen('end', cb);
 
             utils.invokeEventCallbacks('start');
+
+            board = getBoard();
+
+            // finds first step
+            if (currQuestionnaire.steps[0] === undefined) throw 'Step was not found';
+            firstStep = currQuestionnaire.steps[0];
+
+            // render & show
+            board.render(firstStep, 0);
+            board.show();
 
             return this;
         };
@@ -180,7 +381,7 @@
 
         /**
          * Adds callback for event types
-         * @param  {string}   evtType   "start", "end"
+         * @param  {String}   evtType   "start", "end"
          * @param  {Function} cb        The callback to add
          * @return {Object}             Questionr
          */
@@ -192,7 +393,7 @@
 
         /**
          * Removes callback for event types
-         * @param  {string}   evtType "start", "end"
+         * @param  {String}   evtType "start", "end"
          * @param  {Function} cb      The callback to remove
          * @return {Object}           Questionr
          */
@@ -228,10 +429,10 @@
             if (!opt)
                 this.resetDefaultOptions();
 
-            utils.extend(opt, options);
+            $.extend(opt, options);
 
             if (options)
-                utils.extend(customI18N, options.i18n);
+                $.extend(customI18N, options.i18n);
 
             for (i = 0, len = events.length; i < len; ++i) {
                 eventPropName = 'on' + events[i].charAt(0).toUpperCase() + events[i].substring(1);

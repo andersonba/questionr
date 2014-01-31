@@ -1,7 +1,7 @@
 {
   "name": "questionr",
   "version": "0.0.1",
-  "description": "A framework to make it easy for developers to add questionnaire to their pages.",
+  "description": "A framework to make it easy for developers to add questionnaire (like linkedin) to their pages.",
   "main": "index.js",
   "dependencies": {
     "gulp": "~3.5.0"
@@ -12,7 +12,9 @@
     "gulp-less": "~1.2.1",
     "gulp-uglify": "~0.2.0",
     "gulp-jshint": "~1.3.4",
-    "map-stream": "~0.1.0"
+    "map-stream": "~0.1.0",
+    "gulp-watch": "~0.5.0",
+    "gulp-minify-css": "~0.2.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
