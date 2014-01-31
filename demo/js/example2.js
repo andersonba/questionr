@@ -1,9 +1,3 @@
-/**
- * EXAMPLE
- *
- * Rangobox's feedback
- * www.rangobox.com.br
- */
 var questionnaire = {
     id: 'example2',
     target: '#example2',

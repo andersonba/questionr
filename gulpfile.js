@@ -10,6 +10,7 @@ var uglify = require('gulp-uglify');
 var jshint = require('gulp-jshint');
 var less = require('gulp-less');
 var minify = require('gulp-minify-css');
+var rename = require('gulp-rename');
 var watch = require('gulp-watch');
 var map = require('map-stream');
 
@@ -25,9 +26,9 @@ var reporter = map(function(file, cb) {
     }
 
     if (file.jshint.errorCount !== undefined)
-        gutil.log(gutil.colors.green('Your project have ' + file.jshint.errorCount + ' errors...'));
+        gutil.log(gutil.colors.red('JSHint: Your project have ' + file.jshint.errorCount + ' errors...'));
     else
-        gutil.log(gutil.colors.green(' -- Your project no have errors...'));
+        gutil.log(gutil.colors.green('-- JSHint: Your project no have errors!'));
 
     cb(null, file);
 });
@@ -39,10 +40,13 @@ gulp.task('build', function() {
     var scriptDist = './js';
 
     gulp.src(scriptFile)
-        .pipe(concat('questionr.min.js'))
-        .pipe(jshint())
-        .pipe(uglify())
-        .pipe(gulp.dest(scriptDist));
+        .pipe(watch(function(files) {
+            return files.pipe(concat('questionr.min.js'))
+                        .pipe(jshint())
+                        .pipe(reporter)
+                        .pipe(uglify())
+                        .pipe(gulp.dest(scriptDist));
+        }));
 
 
     // less
@@ -51,9 +55,11 @@ gulp.task('build', function() {
 
     gulp.src(lessFile)
         .pipe(watch(function(files) {
-            return files.pipe(concat('all.min.less'))
+            return files.pipe(concat('all.less'))
                         .pipe(less())
+                        .pipe(gulp.dest(lessDist))
                         .pipe(minify())
+                        .pipe(rename('all.min.css'))
                         .pipe(gulp.dest(lessDist));
         }));
 });
