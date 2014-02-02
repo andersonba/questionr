@@ -326,6 +326,7 @@
             answers = [],
             board,
             opt,
+            postDispatcher,
             _configure;
 
         /**
@@ -530,18 +531,36 @@
         };
 
         /**
+         * Enables autosave to post data on changeStep fired
+         * @return {Object} Questionr
+         */
+        this.autosave = function(val) {
+            var self = this;
+            if (postDispatcher === undefined) throw 'Post method was not defined';
+            this.listen('changeStep', function() {
+                postDispatcher();
+            });
+            return this;
+        };
+
+
+        /**
          * HELPER: Submits data serialized to url by ajax
          * @return {Object} Questionr
          */
         this.post = function(url, cb) {
-            var data = this.getData();
-            this.listen('end', function() {
+            postDispatcher = function() {
                 $.post(url, data)
                 .done(function() {
                     // post callback
                     if (typeof cb === 'function') cb();
                 });
+            };
+            var data = this.getData();
+            this.listen('end', function() {
+                postDispatcher();
             });
+            return this;
         };
 
         /**
@@ -611,7 +630,7 @@
 
         /**
          * Sets options for running questionnaire.
-         * Note: If this method is called after loading a questionnaire, the options specified will override the options definied in the questionnaire
+         * Note: If this method is called after loading a questionnaire, the options specified will override the options defined in the questionnaire
          * @param  {Object} options The custom options
          * @return {Object}      Questionr
          */
