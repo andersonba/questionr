@@ -12,7 +12,7 @@ var questionnaire = {
                     title: "What's your name?",
                     name: 'name',
                     hint: 'Please, your full name',
-                    type: 'text'
+                    type: 'text',
                 },
                 {
                     title: "What's your gender?",

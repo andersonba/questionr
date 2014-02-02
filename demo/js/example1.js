@@ -26,13 +26,13 @@ var feedback = {
                             title: 'Não',
                             value: 'no'
                         }
-                    ],
-                    onClickSave: function() {
-                        if (questionr.getLastAnswer().value === 'yes')
-                            questionr.jumpToStep(2);
-                    }
+                    ]
                 }
-            ]
+            ],
+            onDone: function() {
+                if (questionr.getAnswer('received') === 'yes')
+                    questionr.jumpToStep(2);
+            }
         },
         // 1
         {
@@ -50,12 +50,12 @@ var feedback = {
                             title: 'Não',
                             value: 'no'
                         }
-                    ],
-                    onClickSave: function() {
-                        questionr.jumpToStep(3);
-                    }
+                    ]
                 }
-            ]
+            ],
+            onDone: function() {
+                questionr.jumpToStep(3);
+            }
         },
         // 2
         {
@@ -85,6 +85,7 @@ var feedback = {
                 {
                     name: 'rate',
                     type: 'select',
+                    required: false,
                     options: [
                         { value: 0 }, { value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 5 }
                     ]
@@ -94,7 +95,18 @@ var feedback = {
         // 4
         {
             title: 'Obrigado!',
-            description: 'Seu feedback é muito importante para nós.'
+            description: 'Seu feedback é muito importante para nós.',
+            showDone: false,
+            showSkip: false,
+            showExtra: true,
+            extraBtn: 'Fechar',
+            extraBtnStyle: 'done',
+            onShow: function() {
+                questionr.end(false);
+            },
+            onExtra: function() {
+                questionr.destroy();
+            }
         }
     ],
     onStart: function() {
@@ -106,20 +118,17 @@ var feedback = {
     i18n: {
         skipBtn: 'Pular',
         doneBtn: 'Salvar',
-        closeTooltip: 'Sair'
+        closeTooltip: 'Sair',
+        selectText: 'Por favor, selecione'
     }
 };
 
 
 // execute questionnaire passing onEnd callback
 questionr.start(feedback, function() {
-
     // get data from questionnaire
     var data = questionr.getData();
-    // submit data by ajax
-    $.post('//url_to_save_feedback', data)
-    .done(function() {
-        alert('Questionnaire finished');
-    });
-
+    console.log('Feedback enviado com sucesso.');
+    console.log('Result:');
+    console.log(data);
 });
