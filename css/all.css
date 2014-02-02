@@ -65,7 +65,8 @@
 .questionr .questionr-container .form .fieldgroup input[type=checkbox] {
   margin: 0;
 }
-.questionr .questionr-container .form .fieldgroup input[type=text] {
+.questionr .questionr-container .form .fieldgroup input[type=text],
+.questionr .questionr-container .form .fieldgroup textarea {
   color: #555;
   border: 0;
   outline: 0;

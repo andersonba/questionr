@@ -6,18 +6,14 @@
         defaultOpts,
         callbacks,
         utils,
-        winQuestionr = context[namespace],
-        hasSessionStorage = false;
+        winQuestionr = context[namespace];
 
     if (typeof window.jQuery === undefined) throw 'jQuery was not found';
 
-     // If cookies are disabled, accessing sessionStorage can throw an error.
-    try {
-        hasSessionStorage = (typeof window.sessionStorage !== undefined);
-    } catch (err) {}
-
     defaultOpts = {
-        showClose: true
+        showClose: true,
+        animations: true,
+        animationsDelay: 200
     };
 
     // Questionr already exists
@@ -95,9 +91,17 @@
     };
 
     QuestionrBoard.prototype = {
-        _form: function() {
+        _form: function(step) {
+            var self = this;
             var form = $('<form class="form"></form>').on('submit', function(e) {
                 e.preventDefault();
+                // save answers
+                self._updateAnswers();
+                // jump to next or finish
+                questionr.jumpToNextStep();
+                // onDone callback
+                var cb = step.onDone;
+                if (typeof cb === 'function') cb();
             });
             return form;
         },
@@ -106,44 +110,32 @@
             var btn = $('<a href="#" class="close-action" title="' + utils.getI18NString('closeTooltip') + '">' + utils.getI18NString('closeTooltip') + '</a>');
             btn.on('click', function(e) {
                 e.preventDefault();
-                self.hide(true);
+                questionr.close();
             });
             return btn;
         },
-        _actBtn: function(step) {
-            var cb = step.onDone;
-            var self = this;
-            var btn = $('<button type="submit" class="done">' + utils.valOrDefault(step.actBtn, utils.getI18NString('doneBtn')) + '</button>')
-            .on('click', function(e) {
-                e.preventDefault();
-                // save answers
-                self._updateAnswers();
-                // jumpt to next or finish
-                var nextStepNum = questionr.getCurrStepNum() + 1;
-                try {
-                    questionr.jumpToStep(nextStepNum);
-                } catch (err) {
-                    questionr.end();
-                }
-                if (typeof cb === 'function') cb();
-            });
+        _doneBtn: function(step) {
+            var btn = $('<button type="submit" class="done">' + utils.valOrDefault(step.actBtn, utils.getI18NString('doneBtn')) + '</button>');
             return btn;
         },
         _skipBtn: function(step) {
             var cb = step.onSkip;
-            var btn = $('<button type="button" class="skip">' + utils.valOrDefault(step.skipBtn, utils.getI18NString('skipBtn')) + '</button>');
-            if (typeof cb === 'function')
-                btn.on('click', function(e) {
-                    cb();
-                });
+            var btn = $('<button type="button" class="skip">' + utils.valOrDefault(step.skipBtn, utils.getI18NString('skipBtn')) + '</button>')
+            .on('click', function(e) {
+                // Skip, jump to next step
+                questionr.jumpToNextStep();
+                // onSkip callback
+                if (typeof cb === 'function') cb();
+            });
             return btn;
         },
         _extraBtn: function(step) {
             var cb = step.onExtra;
             var btn = $('<button type="button" class="' + utils.valOrDefault(step.extraBtnStyle, 'skip') + '">' + utils.valOrDefault(step.extraBtn, utils.getI18NString('extraBtn')) + '</button>');
             if (typeof cb === 'function')
-                btn.on('click', function(e) {
-                    cb();
+                btn.on('click', function() {
+                    // onExtra callback
+                    if (typeof cb === 'function') cb();
                 });
             return btn;
         },
@@ -152,11 +144,11 @@
             var i,
                 len,
                 list = $('<ul></ul>'),
-                required = (obj.required !== false) ? 'required' : '';
-
+                required = (type === 'radio' && obj.required !== false) ? 'required' : '';
             for (i = 0, len = obj.options.length; i < len; i++) {
                 var option = obj.options[i];
-                var item = $('<li><label><input name="' + obj.name + '" type="' + type + '" value="' + option.value + '" ' + required + '> ' + (option.title || option.value) + '</label></li>');
+                var checked = (option.checked === true) ? 'checked' : '';
+                var item = $('<li><label><input name="' + obj.name + '" type="' + type + '" value="' + option.value + '" ' + required + ' ' + checked + '> ' + (option.title || option.value) + '</label></li>');
                 if (typeof option.hint === 'string')
                     item.append(this._hint(option.hint));
                 list.append(item);
@@ -165,14 +157,16 @@
         },
         _textarea: function(obj) {
             var required = (obj.required !== false) ? 'required' : '';
-            var item = $('<fieldset><textarea name="' + obj.name + '" ' + required + '></textarea></fieldset>');
+            var value = (obj.value !== undefined) ? obj.value : '';
+            var item = $('<fieldset><textarea name="' + obj.name + '" ' + required + '>' + value + '</textarea></fieldset>');
             if (typeof obj.hint === 'string')
                 item.append(this._hint(obj.hint));
             return item;
         },
         _text: function(obj) {
             var required = (obj.required !== false) ? 'required' : '';
-            var item = $('<fieldset><input name="' + obj.name + '" type="text" ' + required + '></fieldset>');
+            var value = (obj.value !== undefined) ? 'value="' + obj.value + '"' : '';
+            var item = $('<fieldset><input name="' + obj.name + '" type="text" ' + required + ' ' + value + '></fieldset>');
             if (typeof obj.hint === 'string')
                 item.append(this._hint(obj.hint));
             return item;
@@ -193,7 +187,8 @@
 
             for (i = 0, len = obj.options.length; i < len; i++) {
                 var option = obj.options[i];
-                var item = $('<option value="' + option.value + '">' + (option.title || option.value) + '</option>');
+                var selected = (option.selected === true) ? 'selected' : '';
+                var item = $('<option value="' + option.value + '" ' + selected + '>' + (option.title || option.value) + '</option>');
                 select.append(item);
             }
             fieldset.append(select);
@@ -206,18 +201,18 @@
         },
         _component: function(options) {
             var input,
-            groupEl = $('<div class="fieldgroup"></div>');
+                inputTypes = {
+                    textarea: '_textarea',
+                    text: '_text',
+                    checkbox: '_checkbox',
+                    radio: '_radio',
+                    select: '_select'
+                },
+                groupEl = $('<div class="fieldgroup"></div>');
 
             if (options.title !== undefined)
                 groupEl.append('<p>' + options.title + '</p>');
 
-            var inputTypes = {
-                textarea: '_textarea',
-                text: '_text',
-                checkbox: '_checkbox',
-                radio: '_radio',
-                select: '_select'
-            };
             var dispatcher = (typeof this[inputTypes[options.type]] === 'function') ? this[inputTypes[options.type]] : null;
 
             if (dispatcher) {
@@ -264,7 +259,7 @@
         render: function(step, idx) {
             var container = el.find('> .questionr-container').first();
             var stepEl = $('<div class="questionr-step" data-step-id="' + idx + '"></div>');
-            var formEl = this._form();
+            var formEl = this._form(step);
             var actsEl = $('<div class="actions-wrapper"></div>');
 
             // title & description
@@ -279,9 +274,9 @@
                 formEl.append(compsEl);
             }
 
-            // action
+            // done
             if (step.showDone !== false)
-                actsEl.append(this._actBtn(step));
+                actsEl.append(this._doneBtn(step));
             // skip
             if (step.showSkip === true)
                 actsEl.append(this._skipBtn(step));
@@ -302,14 +297,22 @@
             if (typeof step.onShow === 'function') step.onShow();
         },
         show: function() {
-            el.fadeIn(200);
+            if (getOption('animations'))
+                el.fadeIn(getOption('animationsDelay'));
+            else
+                el.show(0);
             utils.invokeEventCallbacks('show');
         },
         hide: function(destroy) {
             var self = this;
-            el.fadeOut(200, function() {
-                if (destroy) self.destroy();
-            });
+            if (getOption('animations'))
+                el.fadeOut(200, function() {
+                    if (destroy) self.destroy();
+                });
+            else {
+                el.hide(0);
+                self.destroy();
+            }
             utils.invokeEventCallbacks('hide');
         },
         destroy: function() {
@@ -416,7 +419,7 @@
          * Destroys board
          * @return {Object} Questionr
          */
-        this.destroy = function() {
+        this.close = function() {
             board.hide(true);
             return this;
         };
@@ -435,6 +438,19 @@
             board.render(step, stepNum);
             utils.invokeEventCallbacks('changeStep');
             return this;
+        };
+
+
+        /**
+         * Jumps to a next step in questionnaire
+         * @return {Object}         The next step JSON object
+         */
+        this.jumpToNextStep = function() {
+            try {
+                return this.jumpToStep(currStepNum + 1);
+            } catch (e) {
+                this.end();
+            }
         };
 
         /**
@@ -456,20 +472,20 @@
         };
 
         /**
-         * Gets the target object of the currently running step
-         * @return {Object} The currently step JSON object
-         */
-        this.getCurrStep = function() {
-            return this.getStep(currStepNum);
-        };
-
-        /**
          * Sets the currently running step
          * @return {Object} Questionr
          */
         this.setCurrStep = function(stepNum) {
             currStepNum = stepNum;
             return this;
+        };
+
+        /**
+         * Gets the target object of the currently running step
+         * @return {Object} The currently step JSON object
+         */
+        this.getCurrStep = function() {
+            return this.getStep(currStepNum);
         };
 
         /**
@@ -493,18 +509,6 @@
         };
 
         /**
-         * Gets the object of next step
-         * @return {Object}         The next step JSON object
-         */
-        this.getNextStep = function() {
-            try {
-                return this.getStep(currStepNum + 1);
-            } catch (e) {
-                throw "No have next step, it's finished";
-            }
-        };
-
-        /**
          * Sets serialized data of answers
          * @param {String}  data Data serialized
          * @return {Object}      Questionr
@@ -523,6 +527,21 @@
             if (obj) return answers;
             if (typeof answers === 'undefined') return false;
             return $.param(answers);
+        };
+
+        /**
+         * HELPER: Submits data serialized to url by ajax
+         * @return {Object} Questionr
+         */
+        this.post = function(url, cb) {
+            var data = this.getData();
+            this.listen('end', function() {
+                $.post(url, data)
+                .done(function() {
+                    // post callback
+                    if (typeof cb === 'function') cb();
+                });
+            });
         };
 
         /**

@@ -105,16 +105,10 @@ var feedback = {
                 questionr.end(false);
             },
             onExtra: function() {
-                questionr.destroy();
+                questionr.close();
             }
         }
     ],
-    onStart: function() {
-        console.log('Starting questionr...');
-    },
-    onEnd: function() {
-        console.log('Ending questionr...');
-    },
     i18n: {
         skipBtn: 'Pular',
         doneBtn: 'Salvar',
@@ -124,11 +118,6 @@ var feedback = {
 };
 
 
-// execute questionnaire passing onEnd callback
-questionr.start(feedback, function() {
-    // get data from questionnaire
-    var data = questionr.getData();
-    console.log('Feedback enviado com sucesso.');
-    console.log('Result:');
-    console.log(data);
-});
+// execute questionnaire and submit data via post when finish it
+questionr.start(feedback)
+.post('//url_to_save_feedback');

@@ -12,7 +12,7 @@ var questionnaire = {
                     title: "What's your name?",
                     name: 'name',
                     hint: 'Please, your full name',
-                    type: 'text',
+                    type: 'text'
                 },
                 {
                     title: "What's your gender?",
@@ -34,6 +34,7 @@ var questionnaire = {
                     title: 'Select your country',
                     name: 'country',
                     type: 'select',
+                    required: false,
                     options: [
                         {
                             title: 'Brazil',
@@ -47,7 +48,7 @@ var questionnaire = {
                     ]
                 },
                 {
-                    title: "Do you have...",
+                    title: 'Do you have...',
                     name: 'social',
                     type: 'checkbox',
                     options: [
@@ -72,11 +73,17 @@ var questionnaire = {
                     options: [
                         { value: 0 }, { value: 1 }, { value: 2 }, { value: 3 }, { value: 4 }, { value: 5 }
                     ]
+                },
+                {
+                    title: 'Comment',
+                    name: 'comment',
+                    type: 'textarea'
                 }
             ]
         },
         {
             title: 'Do you like this?',
+            showSkip: true,
             form: [
                 {
                     name: 'liked',
@@ -94,19 +101,24 @@ var questionnaire = {
                 }
             ]
         }
-    ]
+    ],
+    onStart: function() {
+        console.log('Starting questionr...');
+    },
+    onEnd: function() {
+        console.log('Ending questionr...');
+    },
 };
 
 
 // execute questionnaire passing onEnd callback
 questionr.start(questionnaire, function() {
-
     // get data from questionnaire
     var data = questionr.getData();
+    console.log(data);
     // submit data by ajax
-    $.post('//url_to_save_feedback', data)
+    $.post('//url_to_save_questionnaire', data)
     .done(function() {
         alert('Questionnaire finished');
     });
-
 });
