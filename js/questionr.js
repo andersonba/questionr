@@ -196,6 +196,11 @@
                 fieldset.append(this._hint(obj.hint));
             return fieldset;
         },
+        _hidden: function(obj) {
+            var value = (obj.value !== undefined) ? 'value="' + obj.value + '"' : '';
+            var item = $('<input name="' + obj.name + '" type="hidden" ' + value + '>');
+            return item;
+        },
         _hint: function(text) {
             return $('<span class="info" title="' + text + '"><span class="icon-info"><span>?</span></span></span>');
         },
@@ -206,7 +211,8 @@
                     text: '_text',
                     checkbox: '_checkbox',
                     radio: '_radio',
-                    select: '_select'
+                    select: '_select',
+                    hidden: '_hidden'
                 },
                 groupEl = $('<div class="fieldgroup"></div>');
 
@@ -229,14 +235,10 @@
 
             var i,
                 len,
-                compsEl;
+                compsEl = $('<div class="fields"></div>');
 
-            for (i = 0, len = arr.length; i < len; i++) {
-                if (!compsEl)
-                    compsEl = this._component(arr[i]);
-                else
-                    compsEl.append(this._component(arr[i]));
-            }
+            for (i = 0, len = arr.length; i < len; i++)
+                compsEl.append(this._component(arr[i]));
             return compsEl;
         },
         _updateAnswers: function() {
@@ -378,21 +380,18 @@
          * @return {Object}               Questionr
          */
         this.start = function(questionnaire, cb) {
-            var board,
-                firstStep;
+            var firstStep;
 
             // loadQuestionnaire if we are calling `start` directly.
-            if (!currQuestionnaire) {
-                currQuestionnaire = questionnaire;
-                loadQuestionnaire.call(this, questionnaire);
-            }
+            currQuestionnaire = questionnaire;
+            loadQuestionnaire.call(this, questionnaire);
 
             // adds onEnd callback (shortcut)
             if (typeof cb === 'function') this.listen('end', cb);
 
             utils.invokeEventCallbacks('start');
 
-            board = getBoard();
+            board = new QuestionrBoard(opt);
 
             // finds first step
             if (currQuestionnaire.steps[0] === undefined) throw 'Step was not found';
@@ -549,14 +548,14 @@
          * @return {Object} Questionr
          */
         this.post = function(url, cb) {
+            var self = this;
             postDispatcher = function() {
-                $.post(url, data)
+                $.post(url, self.getData())
                 .done(function() {
                     // post callback
                     if (typeof cb === 'function') cb();
                 });
             };
-            var data = this.getData();
             this.listen('end', function() {
                 postDispatcher();
             });
