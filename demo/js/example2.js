@@ -1,5 +1,4 @@
 var questionnaire = {
-    id: 'example2',
     target: '#example2',
     showClose: true,
     steps: [

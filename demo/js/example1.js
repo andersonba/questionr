@@ -6,7 +6,6 @@
  */
 
 var feedback = {
-    id: 'example1',
     target: '#example1',
     steps: [
         // 0

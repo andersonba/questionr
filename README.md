@@ -6,7 +6,6 @@ A framework to make it easy for developers to add questionnaire (like linkedin) 
 ![Preview questionr](http://andersonba.com/questionr/questionr.jpg)
 
     var example = {
-        id: 'example',
         target: '#example',
         steps: [
             {
