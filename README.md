@@ -1,9 +1,14 @@
 questionr
 =========
 
-A framework to make it easy for developers to add questionnaire (like linkedin) to their pages.
+A framework to make it easy for developers to add questionnaire to their pages.
+Inspired by LinkedIn.
 
 ![Preview questionr](http://andersonba.com/questionr/questionr.jpg)
+
+Check out the [examples](http://www.andersonba.com/questionr).
+
+#### Code example
 
     var example = {
         target: '#example',
